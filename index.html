@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PEAK — Training Console</title>
+<meta name="description" content="Adjustable strength, mobility & MMA training program with built-in workout and rest timers." />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="topbar__brand">
+        <h1>PEAK</h1>
+        <span>TRAINING CONSOLE</span>
+      </div>
+      <div class="topbar__actions">
+        <button class="btn btn--ghost" id="exportBtn">Export plan</button>
+        <button class="btn btn--ghost" id="importBtn" onclick="document.getElementById('importInput').click()">Import plan</button>
+        <input type="file" id="importInput" accept="application/json" hidden />
+      </div>
+    </header>
+
+    <nav class="sidenav" id="dayNav" aria-label="Training days"></nav>
+
+    <main>
+      <section id="dayPanel"></section>
+      <div class="sessionbar" id="sessionBar"></div>
+    </main>
+  </div>
+
+  <div class="restpanel" id="restPanel" hidden></div>
+  <div class="flashoverlay" id="flashOverlay"></div>
+  <div class="toast" id="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
