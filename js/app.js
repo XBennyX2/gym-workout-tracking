@@ -13,6 +13,8 @@
     logs: "peak-workout-logs",
     body: "peak-bodyweight",
     streak: "peak-workout-streak",
+    readiness: "peak-readiness",
+    membership: "peak-membership",
   };
 
   const state = {
@@ -168,6 +170,72 @@
     const userId = state.user?.id || localStorage.getItem(STORAGE_KEYS.currentUser);
     if (!userId) return;
     localStorage.setItem(`${STORAGE_KEYS.body}-${userId}`, JSON.stringify(entries));
+  }
+
+  function getReadinessEntry() {
+    try {
+      const userId = state.user?.id || localStorage.getItem(STORAGE_KEYS.currentUser);
+      if (!userId) return null;
+      const entry = JSON.parse(localStorage.getItem(`${STORAGE_KEYS.readiness}-${userId}`) || "null");
+      return entry?.date === new Date().toISOString().slice(0, 10) ? entry : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function setReadinessEntry(entry) {
+    const userId = state.user?.id || localStorage.getItem(STORAGE_KEYS.currentUser);
+    if (!userId) return;
+    localStorage.setItem(`${STORAGE_KEYS.readiness}-${userId}`, JSON.stringify(entry));
+  }
+
+  function getReadinessRecommendation(entry) {
+    if (!entry) return { label: "Check in first", tone: "sky", text: "Log three quick signals to get a training recommendation for today." };
+    const score = Number(entry.sleep) + Number(entry.energy) + (6 - Number(entry.soreness));
+    if (score >= 14) return { label: "Push day", tone: "lime", text: "You look ready for the plan. Keep the main lifts strong and aim for the top of your rep ranges." };
+    if (score >= 10) return { label: "Steady day", tone: "sky", text: "Train as planned, but keep 1–2 reps in reserve and take the full rest periods." };
+    return { label: "Recovery day", tone: "power", text: "Keep today lighter: reduce load or sets, move with control, and stop if soreness changes your form." };
+  }
+
+  function getMembership() {
+    try {
+      const userId = state.user?.id || localStorage.getItem(STORAGE_KEYS.currentUser);
+      if (!userId) return null;
+      return JSON.parse(localStorage.getItem(`${STORAGE_KEYS.membership}-${userId}`) || "null");
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function setMembership(membership) {
+    const userId = state.user?.id || localStorage.getItem(STORAGE_KEYS.currentUser);
+    if (!userId) return;
+    localStorage.setItem(`${STORAGE_KEYS.membership}-${userId}`, JSON.stringify(membership));
+  }
+
+  function getMembershipStatus(membership) {
+    if (!membership?.expiry) return { label: "Add membership", tone: "sky", detail: "Save your expiry date to start tracking." };
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const expiry = new Date(`${membership.expiry}T00:00:00`);
+    const days = Math.ceil((expiry - todayStart) / 86400000);
+    if (days < 0) return { label: "Expired", tone: "power", detail: `Expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago.` };
+    if (days <= 30) return { label: "Expiring soon", tone: "lime", detail: `${days} day${days === 1 ? "" : "s"} left. Time to plan your renewal.` };
+    return { label: "Active", tone: "sky", detail: `${days} days left on your membership.` };
+  }
+
+  function getWorkoutDaysSince(startDate) {
+    if (!startDate) return null;
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const start = new Date(`${startDate}T00:00:00`);
+    return Math.max(0, Math.floor((todayStart - start) / 86400000));
+  }
+
+  function addMonths(date, months) {
+    const next = new Date(date);
+    next.setMonth(next.getMonth() + months);
+    return next.toISOString().slice(0, 10);
   }
 
   function findDay(dayId) {
@@ -369,6 +437,11 @@
     const stats = getOverviewStats(day);
     const bodyEntries = getBodyweightEntries();
     const recentPRs = getPRSummary();
+    const readiness = getReadinessEntry();
+    const readinessRecommendation = getReadinessRecommendation(readiness);
+    const membership = getMembership();
+    const membershipStatus = getMembershipStatus(membership);
+    const workoutDays = getWorkoutDaysSince(membership?.workoutStart);
 
     panel.innerHTML = `
       <div class="dayhead">
@@ -414,6 +487,22 @@
       </div>
 
       <div class="dashboard-panel">
+        <div class="dashboard-panel__section readiness-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow" style="color:var(--sky)">Daily signal</p>
+              <h3>Readiness check-in</h3>
+            </div>
+            <span class="readiness-badge readiness-badge--${readinessRecommendation.tone}">${readinessRecommendation.label}</span>
+          </div>
+          <p class="readiness-copy">${readinessRecommendation.text}</p>
+          <form id="readinessForm" class="readiness-form">
+            <label>Sleep <output id="sleepValue">${readiness?.sleep || 3}</output><input type="range" name="sleep" min="1" max="5" value="${readiness?.sleep || 3}" /></label>
+            <label>Energy <output id="energyValue">${readiness?.energy || 3}</output><input type="range" name="energy" min="1" max="5" value="${readiness?.energy || 3}" /></label>
+            <label>Soreness <output id="sorenessValue">${readiness?.soreness || 3}</output><input type="range" name="soreness" min="1" max="5" value="${readiness?.soreness || 3}" /></label>
+            <button class="btn btn--accent" type="submit">Save check-in</button>
+          </form>
+        </div>
         <div class="dashboard-panel__section">
           <h3>Strength dashboard</h3>
           <div class="mini-chart">
@@ -434,6 +523,29 @@
             </form>
           </div>
         </div>
+        <div class="dashboard-panel__section membership-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow" style="color:var(--lime)">Gym admin</p>
+              <h3>Membership tracker</h3>
+            </div>
+            <span class="membership-badge membership-badge--${membershipStatus.tone}">${membershipStatus.label}</span>
+          </div>
+          <p class="membership-status">${membershipStatus.detail}</p>
+          <div class="membership-metrics">
+            <div><span>Workout journey</span><strong>${workoutDays === null ? "—" : `${workoutDays} days`}</strong></div>
+            <div><span>Last paid</span><strong>${membership?.paidMonth || "Not recorded"}</strong></div>
+          </div>
+          <form id="membershipForm" class="membership-form">
+            <input type="text" name="plan" maxlength="40" placeholder="Plan name" value="${escapeAttr(membership?.plan || "")}" />
+            <label>Workout started <input type="date" name="workoutStart" value="${escapeAttr(membership?.workoutStart || membership?.start || "")}" /></label>
+            <label>Expires <input type="date" name="expiry" value="${escapeAttr(membership?.expiry || "")}" /></label>
+            <input type="number" name="daysLeft" min="0" step="1" placeholder="Days until expiry" />
+            <input type="number" name="cost" min="0" step="0.01" placeholder="Cost / month" value="${membership?.cost || ""}" />
+            <button class="btn btn--accent" type="submit">Save membership</button>
+          </form>
+          <button class="btn btn--ghost membership-paid-btn" id="markMembershipPaidBtn" type="button">Paid this month</button>
+        </div>
       </div>
 
       <div class="exlist" id="exlist"></div>
@@ -446,6 +558,15 @@
     const list = $("#exlist", panel);
     day.exercises.forEach((exercise) => list.appendChild(renderExerciseCard(day, exercise)));
     $("#bodyweightForm")?.addEventListener("submit", handleBodyweightSubmit);
+    $("#readinessForm")?.addEventListener("submit", handleReadinessSubmit);
+    $("#membershipForm")?.addEventListener("submit", handleMembershipSubmit);
+    $("#markMembershipPaidBtn")?.addEventListener("click", handleMembershipPaid);
+    $$("#readinessForm input[type='range']").forEach((input) => {
+      input.addEventListener("input", () => {
+        const output = $(`#${input.name}Value`);
+        if (output) output.value = input.value;
+      });
+    });
 
     renderSessionBar();
   }
@@ -474,6 +595,61 @@
     form.reset();
     renderDay();
     showToast("Bodyweight entry saved.");
+  }
+
+  function handleReadinessSubmit(event) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    setReadinessEntry({
+      date: new Date().toISOString().slice(0, 10),
+      sleep: Number(values.get("sleep")),
+      energy: Number(values.get("energy")),
+      soreness: Number(values.get("soreness")),
+    });
+    renderDay();
+    showToast("Readiness saved for today.");
+  }
+
+  function handleMembershipSubmit(event) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const expiryInput = values.get("expiry")?.toString();
+    const daysLeft = values.get("daysLeft")?.toString();
+    const today = new Date();
+    const expiry = daysLeft !== "" && Number(daysLeft) >= 0
+      ? new Date(today.getFullYear(), today.getMonth(), today.getDate() + Number(daysLeft)).toISOString().slice(0, 10)
+      : expiryInput;
+    const workoutStart = values.get("workoutStart")?.toString();
+    if (!expiry) {
+      showToast("Add your membership expiry date first.");
+      return;
+    }
+    if (workoutStart && new Date(`${workoutStart}T00:00:00`) > new Date(`${today.toISOString().slice(0, 10)}T00:00:00`)) {
+      showToast("Workout start date cannot be in the future.");
+      return;
+    }
+    setMembership({
+      plan: values.get("plan")?.toString().trim() || "Gym membership",
+      workoutStart,
+      expiry,
+      cost: Number(values.get("cost")) || null,
+      paidMonth: getMembership()?.paidMonth || null,
+    });
+    renderDay();
+    showToast("Membership details saved.");
+  }
+
+  function handleMembershipPaid() {
+    const membership = getMembership() || {};
+    const today = new Date();
+    setMembership({
+      ...membership,
+      plan: membership.plan || "Gym membership",
+      expiry: addMonths(today, 1),
+      paidMonth: today.toLocaleDateString(undefined, { month: "short", year: "numeric" }),
+    });
+    renderDay();
+    showToast("This month marked paid. Membership extended for one month.");
   }
 
   function renderActiveWorkout(day) {
