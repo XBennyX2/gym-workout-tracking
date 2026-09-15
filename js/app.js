@@ -1023,11 +1023,25 @@
   }
 
   function exportPlan() {
-    const blob = new Blob([JSON.stringify(state.plan, null, 2)], { type: "application/json" });
+    if (!state.user) {
+      showToast("Login before exporting your training data.");
+      return;
+    }
+    const backup = {
+      format: "peak-backup-v1",
+      exportedAt: new Date().toISOString(),
+      user: state.user,
+      plan: state.plan,
+      workoutLogs: getWorkoutLogs(),
+      bodyweight: getBodyweightEntries(),
+      readiness: localStorage.getItem(`${STORAGE_KEYS.readiness}-${state.user.id}`),
+      membership: getMembership(),
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "peak-program.json";
+    a.download = "peak-backup.json";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -1037,15 +1051,21 @@
     reader.onload = () => {
       try {
         const parsed = JSON.parse(reader.result);
-        if (!parsed.days) throw new Error("bad shape");
-        state.plan = normalizeProgram(parsed);
+        const backup = parsed.format === "peak-backup-v1" ? parsed : { plan: parsed };
+        if (!backup.plan?.days) throw new Error("bad shape");
+        if (!state.user) throw new Error("login required");
+        state.plan = normalizeProgram(backup.plan);
         persistPlan();
+        if (Array.isArray(backup.workoutLogs)) setWorkoutLogs(backup.workoutLogs);
+        if (Array.isArray(backup.bodyweight)) setBodyweightEntries(backup.bodyweight);
+        if (backup.readiness) localStorage.setItem(`${STORAGE_KEYS.readiness}-${state.user.id}`, backup.readiness);
+        if (backup.membership) setMembership(backup.membership);
         if (!findDay(state.activeDay)) state.activeDay = state.plan.days[0].id;
         renderNav();
         renderDay();
-        showToast("Program imported.");
+        showToast("Backup imported.");
       } catch (error) {
-        showToast("Couldn't read that file — is it a PEAK export?");
+        showToast("Couldn't import that backup. Log in and choose a PEAK JSON file.");
       }
     };
     reader.readAsText(file);

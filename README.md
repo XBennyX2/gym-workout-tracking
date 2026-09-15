@@ -24,11 +24,11 @@ python3 -m http.server 8000
 - **Workout stopwatch**: "Start workout" begins a running clock for the session pinned above the tab bar; "End workout" stops it and confirms your total time.
 - **Form videos**: "▶ Form video" on any card loads a real, non-hardcoded YouTube result for that exact exercise name inline — no broken links, no guessing which clip exists.
 - **MMA day**: same card format — striking, clinch/takedowns, ground work, and a conditioning circuit, each with its own drilling video lookup and adjustable round timers.
-- **Saving your edits**: this app intentionally does **not** use browser storage, so it behaves identically whether you open it locally, host it, or preview it anywhere. Use **Export plan** (top right) to download your customized program as a `.json` file, and **Import plan** to load it back in on any device/browser. Keep that file somewhere safe (Notes app, Drive, etc.) — export again whenever you make edits you want to keep.
+- **Saving your edits**: the app stores each profile's program, workout history, bodyweight, and membership data in that browser's `localStorage`. This survives normal page reloads and days without opening the app, but it does not follow you to another browser/device and can be removed when site data or private browsing data is cleared. Use **Export backup** regularly to download all of the current profile's data as a `.json` file, then use **Import backup** after logging in on another browser/device. Daily readiness check-ins are intentionally shown only for the current day.
 
 ## 3. Customize
 
-- **Program data**: `js/data.js` holds every default exercise (name, sets, reps, rest, coaching cue, muscle, icon). Edit this file directly to change what loads on first visit — or just edit in the UI and export.
+- **Program data**: `js/data.js` holds every default exercise (name, sets, reps, rest, coaching cue, muscle, icon). Edit this file directly to change what loads on first visit — or just edit in the UI and export a backup.
 - **Colors/type**: `css/style.css`, top of file — CSS variables (`--power`, `--lime`, `--sky`, fonts) control the whole theme.
 - **Icons**: `js/data.js` → `ICONS` object holds small inline SVGs per equipment category (barbell, dumbbell, bodyweight, bench, cable, stretch, glove). Add your own key/SVG and reference it from an exercise's `icon` field.
 - **Rest chime**: generated in-browser with the Web Audio API (`js/app.js` → `beep()`), so there are no audio files to manage or replace.
