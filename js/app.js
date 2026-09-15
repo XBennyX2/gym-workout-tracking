@@ -486,7 +486,15 @@
         </div>
       </div>
 
-      <div class="dashboard-panel">
+      <details class="status-dropdown">
+        <summary class="status-dropdown__summary">
+          <span>
+            <span class="eyebrow">Progress tools</span>
+            <strong>Other status</strong>
+          </span>
+          <span class="status-dropdown__icon" aria-hidden="true">+</span>
+        </summary>
+        <div class="dashboard-panel">
         <div class="dashboard-panel__section readiness-panel">
           <div class="panel-heading">
             <div>
@@ -523,7 +531,7 @@
             </form>
           </div>
         </div>
-        <div class="dashboard-panel__section membership-panel">
+          <div class="dashboard-panel__section membership-panel">
           <div class="panel-heading">
             <div>
               <p class="eyebrow" style="color:var(--lime)">Gym admin</p>
@@ -545,8 +553,9 @@
             <button class="btn btn--accent" type="submit">Save membership</button>
           </form>
           <button class="btn btn--ghost membership-paid-btn" id="markMembershipPaidBtn" type="button">Paid this month</button>
+          </div>
         </div>
-      </div>
+      </details>
 
       <div class="exlist" id="exlist"></div>
     `;
