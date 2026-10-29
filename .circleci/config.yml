@@ -1,16 +1,21 @@
 version: 2.1
 
 jobs:
-  placeholder:
+  test:
     docker:
       - image: cimg/node:24.22
     steps:
       - checkout
       - run:
-          name: Placeholder
-          command: echo "No build, test, or lint steps configured for this project."
+          name: JavaScript Syntax Tests
+          command: |
+            for file in js/*.js; do
+              echo "Checking $file syntax..."
+              node --check "$file"
+            done
+            echo "All JavaScript files passed syntax check!"
 
 workflows:
-  build:
+  test_workflow:
     jobs:
-      - placeholder
+      - test
