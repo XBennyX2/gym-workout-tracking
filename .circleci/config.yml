@@ -1,0 +1,16 @@
+version: 2.1
+
+jobs:
+  placeholder:
+    docker:
+      - image: cimg/node:24.22
+    steps:
+      - checkout
+      - run:
+          name: Placeholder
+          command: echo "No build, test, or lint steps configured for this project."
+
+workflows:
+  build:
+    jobs:
+      - placeholder
